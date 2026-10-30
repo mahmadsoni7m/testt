@@ -3,6 +3,7 @@ package tj.soni.quiz
 
 import android.content.Context
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -30,6 +31,11 @@ private val WrongRed = Color(0xFFB83B3B)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Ранги қисми болои телефон ва поёни экран
+        window.statusBarColor = android.graphics.Color.rgb(16, 45, 36)
+        window.navigationBarColor = android.graphics.Color.rgb(16, 45, 36)
+        window.decorView.systemUiVisibility = 0
 
         val prefs = getSharedPreferences(
             "islamic_quiz",
