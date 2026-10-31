@@ -456,11 +456,9 @@ fun QuizScreen(
                     "САВОЛИ НАВБАТӢ",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
-            )
-         }
-        }
-      }
-    }
+               )
+             }
+          }
 
 @Composable
 fun ResultScreen(
