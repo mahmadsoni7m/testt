@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
 
 private val DarkGreen = Color(0xFF102D24)
 private val CardGreen = Color(0xFF1C4938)
@@ -65,6 +66,20 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
 
     val category = categories[selectedCategory]
     val questions = category.questions
+    BackHandler(enabled = screen != 0) {
+    when (screen) {
+        1 -> {
+            // Аз тест ба категорияҳо
+            screen = 0
+            selectedAnswer = -1
+        }
+
+        2 -> {
+            // Аз натиҷа ба саҳифаи асосӣ
+            screen = 0
+        }
+    }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
