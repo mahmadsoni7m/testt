@@ -26,7 +26,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.foundation.lazy.items
 
 private val DarkGreen = Color(0xFF102D24)
 private val CardGreen = Color(0xFF1C4938)
@@ -155,7 +154,6 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
 
 @Composable
 fun HomeScreen(
-    bestScore: Int,
     selectedCategory: Int,
     onCategorySelected: (Int) -> Unit
 ) {
