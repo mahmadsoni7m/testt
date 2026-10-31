@@ -1,11 +1,13 @@
+
 package tj.soni.quiz
 
 import android.content.Context
 import android.os.Bundle
-import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,18 +16,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
-import androidx.compose.ui.graphics.Brush
 
 private val DarkGreen = Color(0xFF102D24)
 private val CardGreen = Color(0xFF1C4938)
@@ -38,7 +37,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Ранги қисми болои телефон ва поёни экран
         window.statusBarColor = android.graphics.Color.rgb(16, 45, 36)
         window.navigationBarColor = android.graphics.Color.rgb(16, 45, 36)
         window.decorView.systemUiVisibility = 0
@@ -71,19 +69,10 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
 
     val category = categories[selectedCategory]
     val questions = category.questions
-    BackHandler(enabled = screen != 0) {
-    when (screen) {
-        1 -> {
-            // Аз тест ба категорияҳо
-            screen = 0
-            selectedAnswer = -1
-        }
 
-        2 -> {
-            // Аз натиҷа ба саҳифаи асосӣ
-            screen = 0
-        }
-    }
+    BackHandler(enabled = screen != 0) {
+        screen = 0
+        selectedAnswer = -1
     }
 
     Surface(
@@ -91,18 +80,16 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
         color = DarkGreen
     ) {
         when (screen) {
-
             0 -> HomeScreen(
-    bestScore = bestScore,
-    onCategorySelected = { index ->
-        selectedCategory = index
-        questionIndex = 0
-        selectedAnswer = -1
-        score = 0
-        screen = 1
-    },
-    selectedCategory = selectedCategory
-)
+                selectedCategory = selectedCategory,
+                onCategorySelected = { index ->
+                    selectedCategory = index
+                    questionIndex = 0
+                    selectedAnswer = -1
+                    score = 0
+                    screen = 1
+                }
+            )
 
             1 -> QuizScreen(
                 category = category,
@@ -113,7 +100,6 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
                 onAnswer = { answer ->
                     if (selectedAnswer == -1) {
                         selectedAnswer = answer
-
                         if (answer == questions[questionIndex].correct) {
                             score++
                         }
@@ -133,13 +119,19 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
                         screen = 2
                     }
                 },
-                onBack = { screen = 0 }
+                onBack = {
+                    screen = 0
+                    selectedAnswer = -1
+                }
             )
 
             2 -> ResultScreen(
                 score = score,
                 total = questions.size,
-                onHome = { screen = 0 },
+                bestScore = bestScore,
+                onHome = {
+                    screen = 0
+                },
                 onRetry = {
                     questionIndex = 0
                     selectedAnswer = -1
@@ -151,7 +143,6 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
     }
 }
 
-
 @Composable
 fun HomeScreen(
     selectedCategory: Int,
@@ -162,7 +153,7 @@ fun HomeScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
+                    listOf(
                         Color(0xFF031D15),
                         Color(0xFF07502F),
                         Color(0xFF031D15)
@@ -172,14 +163,10 @@ fun HomeScreen(
             .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Spacer(Modifier.height(12.dp))
 
-        // Логотипи барнома
         Image(
-            painter = painterResource(
-                id = R.drawable.home_background
-            ),
+            painter = painterResource(R.drawable.home_background),
             contentDescription = "Логотипи Саволҳои Исломӣ",
             modifier = Modifier
                 .fillMaxWidth()
@@ -187,14 +174,13 @@ fun HomeScreen(
             contentScale = ContentScale.Fit
         )
 
-        Spacer(Modifier.height(5.dp))
+        Spacer(Modifier.height(8.dp))
 
         Text(
             "Ассалому алайкум!",
             color = White,
             fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            fontWeight = FontWeight.Bold
         )
 
         Spacer(Modifier.height(5.dp))
@@ -208,35 +194,20 @@ fun HomeScreen(
 
         Spacer(Modifier.height(25.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text("◆", color = Gold, fontSize = 13.sp)
-
-            Spacer(Modifier.width(10.dp))
-
-            Text(
-                "Категорияро интихоб кунед",
-                color = Gold,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(Modifier.width(10.dp))
-
-            Text("◆", color = Gold, fontSize = 13.sp)
-        }
+        Text(
+            "◆  Категорияро интихоб кунед  ◆",
+            color = Gold,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(Modifier.height(16.dp))
 
-        // Рӯйхати категорияҳо
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
             items(categories.size) { index ->
-
                 val item = categories[index]
                 val selected = selectedCategory == index
 
@@ -244,18 +215,13 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            if (selected) {
-                                Color(0xFFFFD76A)
-                            } else {
-                                Color(0xFF075334)
-                            },
+                            if (selected) Color(0xFFFFD76A)
+                            else Color(0xFF075334),
                             RoundedCornerShape(21.dp)
                         )
                         .border(
-                            BorderStroke(
-                                1.5.dp,
-                                Gold
-                            ),
+                            1.5.dp,
+                            Gold,
                             RoundedCornerShape(21.dp)
                         )
                         .clickable {
@@ -267,21 +233,13 @@ fun HomeScreen(
                         ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
-                    Text(
-                        item.emoji,
-                        fontSize = 30.sp
-                    )
+                    Text(item.emoji, fontSize = 30.sp)
 
                     Spacer(Modifier.width(15.dp))
 
                     Text(
                         item.name,
-                        color = if (selected) {
-                            Color(0xFF082D1D)
-                        } else {
-                            White
-                        },
+                        color = if (selected) DarkGreen else White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
@@ -289,19 +247,18 @@ fun HomeScreen(
 
                     Text(
                         if (selected) "✓" else "›",
-                        color = if (selected) {
-                            Color(0xFF082D1D)
-                        } else {
-                            Gold
-                        },
+                        color = if (selected) DarkGreen else Gold,
                         fontSize = 27.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
+
+        Spacer(Modifier.height(10.dp))
     }
 }
+
 @Composable
 fun QuizScreen(
     category: QuizCategory,
@@ -333,7 +290,7 @@ fun QuizScreen(
             Spacer(Modifier.weight(1f))
 
             Text(
-                category.emoji + " " + category.name,
+                "${category.emoji} ${category.name}",
                 color = Gold,
                 fontWeight = FontWeight.Bold
             )
@@ -351,7 +308,7 @@ fun QuizScreen(
         Spacer(Modifier.height(12.dp))
 
         LinearProgressIndicator(
-            progress = { questionNumber.toFloat() / totalQuestions },
+            progress = questionNumber.toFloat() / totalQuestions,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp),
@@ -409,15 +366,11 @@ fun QuizScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                if (selectedAnswer != -1 &&
-                    index == question.correct
-                ) {
+                if (selectedAnswer != -1 && index == question.correct) {
                     Text("✓", color = White, fontSize = 22.sp)
                 }
 
-                if (selectedAnswer == index &&
-                    index != question.correct
-                ) {
+                if (selectedAnswer == index && index != question.correct) {
                     Text("✕", color = White, fontSize = 22.sp)
                 }
             }
@@ -450,21 +403,20 @@ fun QuizScreen(
             shape = RoundedCornerShape(15.dp)
         ) {
             Text(
-                if (questionNumber == totalQuestions)
-                    "НАТИҶА"
-                else
-                    "САВОЛИ НАВБАТӢ",
+                if (questionNumber == totalQuestions) "НАТИҶА"
+                else "САВОЛИ НАВБАТӢ",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
-               )
-             }
-          }
-     }
+            )
+        }
+    }
 }
+
 @Composable
 fun ResultScreen(
     score: Int,
     total: Int,
+    bestScore: Int,
     onHome: () -> Unit,
     onRetry: () -> Unit
 ) {
@@ -511,12 +463,20 @@ fun ResultScreen(
             fontSize = 19.sp
         )
 
-        Spacer(Modifier.height(35.dp))
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            "Рекорди беҳтарин: $bestScore",
+            color = Gold,
+            fontSize = 17.sp
+        )
+
+        Spacer(Modifier.height(30.dp))
 
         Text(
             when {
                 score == total -> "Мошоаллоҳ! Ҳама ҷавобҳо дурустанд!"
-                score >= total / 2 -> "Офарин! Кӯшиши хуб!"
+                score >= (total + 1) / 2 -> "Офарин! Кӯшиши хуб!"
                 else -> "Боз машқ кун! Ту метавонӣ!"
             },
             color = Gold,
