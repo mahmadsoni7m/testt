@@ -457,9 +457,10 @@ fun QuizScreen(
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
+         }
         }
+      }
     }
-}
 
 @Composable
 fun ResultScreen(
