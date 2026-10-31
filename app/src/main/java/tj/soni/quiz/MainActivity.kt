@@ -1,529 +1,246 @@
-
 package tj.soni.quiz
 
-import android.content.Context
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Image
-import androidx.compose.ui.layout.ContentScale
+import androidx.core.content.ContextCompat
 import tj.soni.quiz.daily.DailyQuizNotifications
 import tj.soni.quiz.daily.DailyQuizScheduler
 
 private val DarkGreen = Color(0xFF102D24)
 private val CardGreen = Color(0xFF1C4938)
 private val Gold = Color(0xFFE8C875)
-private val White = Color.White
 private val CorrectGreen = Color(0xFF237D4B)
 private val WrongRed = Color(0xFFB83B3B)
+private val SoftWhite = Color(0xFFF5F5F0)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        window.statusBarColor = android.graphics.Color.rgb(16, 45, 36)
-        window.navigationBarColor = android.graphics.Color.rgb(16, 45, 36)
-        window.decorView.systemUiVisibility = 0
         DailyQuizNotifications.createChannel(this)
         DailyQuizScheduler.scheduleAll(this)
-
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-    val permission = android.Manifest.permission.POST_NOTIFICATIONS
-
-    if (
-        androidx.core.content.ContextCompat.checkSelfPermission(
-            this,
-            permission
-        ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-    ) {
-        requestPermissions(arrayOf(permission), 1001)
-    }
-        }
-
-        val prefs = getSharedPreferences(
-            "islamic_quiz",
-            Context.MODE_PRIVATE
-        )
-
-        setContent {
-            MaterialTheme {
-                IslamicQuizApp(prefs)
-            }
+        setContent { IslamicQuizTheme { IslamicQuizApp() } }
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+                .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }
 
 @Composable
-fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
+private fun IslamicQuizTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = Gold, secondary = CorrectGreen, background = DarkGreen,
+            surface = CardGreen, onPrimary = DarkGreen, onSecondary = SoftWhite,
+            onBackground = SoftWhite, onSurface = SoftWhite, error = WrongRed
+        ),
+        content = content
+    )
+}
 
-    var bestScore by remember {
-        mutableIntStateOf(prefs.getInt("best_score", 0))
-    }
-
-    var screen by remember { mutableIntStateOf(0) }
-    var selectedCategory by remember { mutableIntStateOf(0) }
-    var questionIndex by remember { mutableIntStateOf(0) }
-    var selectedAnswer by remember { mutableIntStateOf(-1) }
+@Composable
+private fun IslamicQuizApp() {
+    var category by remember { mutableStateOf<QuizCategory?>(null) }
+    var index by remember { mutableIntStateOf(0) }
+    var answer by remember { mutableIntStateOf(-1) }
     var score by remember { mutableIntStateOf(0) }
+    var finished by remember { mutableStateOf(false) }
 
-    val category = categories[selectedCategory]
-    val questions = category.questions
-
-    BackHandler(enabled = screen != 0) {
-        screen = 0
-        selectedAnswer = -1
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = DarkGreen
-    ) {
-        when (screen) {
-            0 -> HomeScreen(
-                selectedCategory = selectedCategory,
-                onCategorySelected = { index ->
-                    selectedCategory = index
-                    questionIndex = 0
-                    selectedAnswer = -1
-                    score = 0
-                    screen = 1
-                }
-            )
-
-            1 -> QuizScreen(
-                category = category,
-                question = questions[questionIndex],
-                questionNumber = questionIndex + 1,
-                totalQuestions = questions.size,
-                selectedAnswer = selectedAnswer,
-                onAnswer = { answer ->
-                    if (selectedAnswer == -1) {
-                        selectedAnswer = answer
-                        if (answer == questions[questionIndex].correct) {
-                            score++
+    Surface(Modifier.fillMaxSize(), color = DarkGreen) {
+        when {
+            category == null -> CategoryScreen { chosen ->
+                category = chosen; index = 0; answer = -1; score = 0; finished = false
+            }
+            finished -> ResultScreen(score, category!!.questions.size, {
+                category = null; index = 0; answer = -1; score = 0; finished = false
+            }, {
+                index = 0; answer = -1; score = 0; finished = false
+            })
+            category!!.questions.isEmpty() -> EmptyScreen { category = null }
+            else -> {
+                val questions = category!!.questions
+                val qIndex = index.coerceIn(0, questions.lastIndex)
+                val q = questions[qIndex]
+                QuizScreen(category!!, q, qIndex, questions.size, answer,
+                    onAnswer = { picked ->
+                        if (answer == -1) {
+                            answer = picked
+                            if (picked == q.correct) score++
                         }
-                    }
-                },
-                onNext = {
-                    if (questionIndex < questions.lastIndex) {
-                        questionIndex++
-                        selectedAnswer = -1
-                    } else {
-                        if (score > bestScore) {
-                            bestScore = score
-                            prefs.edit()
-                                .putInt("best_score", bestScore)
-                                .apply()
-                        }
-                        screen = 2
-                    }
-                },
-                onBack = {
-                    screen = 0
-                    selectedAnswer = -1
-                }
-            )
-
-            2 -> ResultScreen(
-                score = score,
-                total = questions.size,
-                bestScore = bestScore,
-                onHome = {
-                    screen = 0
-                },
-                onRetry = {
-                    questionIndex = 0
-                    selectedAnswer = -1
-                    score = 0
-                    screen = 1
-                }
-            )
+                    },
+                    onNext = {
+                        if (qIndex < questions.lastIndex) { index++; answer = -1 }
+                        else finished = true
+                    },
+                    onBack = { category = null; answer = -1 }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun HomeScreen(
-    selectedCategory: Int,
-    onCategorySelected: (Int) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF031D15),
-                        Color(0xFF07502F),
-                        Color(0xFF031D15)
-                    )
-                )
-            )
-            .padding(horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(Modifier.height(12.dp))
-
-        Image(
-            painter = painterResource(R.drawable.home_background),
-            contentDescription = "Логотипи Саволҳои Исломӣ",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(215.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            "Ассалому алайкум!",
-            color = White,
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(Modifier.height(5.dp))
-
-        Text(
-            "Дониши исломии худро бисанҷед",
-            color = White.copy(alpha = 0.85f),
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(25.dp))
-
-        Text(
-            "◆  Категорияро интихоб кунед  ◆",
-            color = Gold,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(13.dp)
-        ) {
-            items(categories.size) { index ->
-                val item = categories[index]
-                val selected = selectedCategory == index
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (selected) Color(0xFFFFD76A)
-                            else Color(0xFF075334),
-                            RoundedCornerShape(21.dp)
-                        )
-                        .border(
-                            1.5.dp,
-                            Gold,
-                            RoundedCornerShape(21.dp)
-                        )
-                        .clickable {
-                            onCategorySelected(index)
+private fun CategoryScreen(onChoose: (QuizCategory) -> Unit) {
+    Column(Modifier.fillMaxSize().background(DarkGreen).padding(20.dp)) {
+        Text("Ассалому алайкум", color = Gold, fontSize = 15.sp)
+        Spacer(Modifier.height(6.dp))
+        Text("Саволҳои Исломӣ", color = SoftWhite, fontSize = 29.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        Text("Дониши худро санҷед ва ҳар рӯз чизе омӯзед.", color = SoftWhite.copy(alpha = .75f))
+        Spacer(Modifier.height(20.dp))
+        Card(colors = CardDefaults.cardColors(containerColor = CardGreen), shape = RoundedCornerShape(16.dp)) {
+            Column(Modifier.padding(16.dp)) {
+                Text("📅 Саволи ҳаррӯза", color = Gold, fontWeight = FontWeight.Bold)
+                Text("Огоҳиномаҳо: 06:00 • 13:00 • 19:00", color = SoftWhite, fontSize = 13.sp)
+                Text("Ҷавобро аз дохили огоҳинома фиристед.", color = SoftWhite.copy(alpha = .7f), fontSize = 12.sp)
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        Text("Мавзӯъҳо", color = Gold, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(10.dp))
+        if (categories.isEmpty()) {
+            Text("Ҳоло саволҳо илова нашудаанд. Questions.kt-ро санҷед.", color = SoftWhite)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(categories) { item ->
+                    Card(
+                        Modifier.fillMaxWidth().clickable { onChoose(item) },
+                        colors = CardDefaults.cardColors(containerColor = CardGreen),
+                        shape = RoundedCornerShape(15.dp)
+                    ) {
+                        Row(Modifier.padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(item.emoji, fontSize = 28.sp)
+                            Column(Modifier.weight(1f).padding(start = 13.dp)) {
+                                Text(item.name, color = SoftWhite, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                                Text("${item.questions.size} савол", color = Gold, fontSize = 12.sp)
+                            }
+                            Text("›", color = Gold, fontSize = 28.sp)
                         }
-                        .padding(
-                            horizontal = 17.dp,
-                            vertical = 19.dp
-                        ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(item.emoji, fontSize = 30.sp)
-
-                    Spacer(Modifier.width(15.dp))
-
-                    Text(
-                        item.name,
-                        color = if (selected) DarkGreen else White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Text(
-                        if (selected) "✓" else "›",
-                        color = if (selected) DarkGreen else Gold,
-                        fontSize = 27.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    }
                 }
             }
         }
-
-        Spacer(Modifier.height(10.dp))
     }
 }
 
 @Composable
-fun QuizScreen(
-    category: QuizCategory,
-    question: Question,
-    questionNumber: Int,
-    totalQuestions: Int,
-    selectedAnswer: Int,
-    onAnswer: (Int) -> Unit,
-    onNext: () -> Unit,
-    onBack: () -> Unit
+private fun QuizScreen(
+    category: QuizCategory, question: Question, index: Int, total: Int,
+    selected: Int, onAnswer: (Int) -> Unit, onNext: () -> Unit, onBack: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "‹ Бозгашт",
-                color = Gold,
-                fontSize = 16.sp,
-                modifier = Modifier.clickable { onBack() }
-            )
-
+    Column(Modifier.fillMaxSize().background(DarkGreen).padding(20.dp)) {
+        TextButton(onClick = onBack) { Text("‹ Бозгашт", color = Gold) }
+        Text(category.name, color = Gold, fontSize = 14.sp)
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Саволи ${index + 1} аз $total", color = SoftWhite, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-
-            Text(
-                "${category.emoji} ${category.name}",
-                color = Gold,
-                fontWeight = FontWeight.Bold
-            )
+            Text("${(index + 1) * 100 / total}%", color = Gold)
         }
-
-        Spacer(Modifier.height(28.dp))
-
-        Text(
-            "Саволи $questionNumber аз $totalQuestions",
-            color = Gold,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(Modifier.height(12.dp))
-
+        Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(
-            progress = questionNumber.toFloat() / totalQuestions,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp),
+            progress = { (index + 1f) / total },
+            modifier = Modifier.fillMaxWidth(),
             color = Gold,
             trackColor = CardGreen
         )
-
-        Spacer(Modifier.height(35.dp))
-
-        Text(
-            question.text,
-            color = White,
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(28.dp))
-
-        question.answers.forEachIndexed { index, answer ->
-
-            val backgroundColor = when {
-                selectedAnswer == -1 -> CardGreen
-                index == question.correct -> CorrectGreen
-                index == selectedAnswer -> WrongRed
+        Spacer(Modifier.height(22.dp))
+        Card(colors = CardDefaults.cardColors(containerColor = CardGreen), shape = RoundedCornerShape(17.dp)) {
+            Text(question.text, Modifier.padding(19.dp), color = SoftWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(15.dp))
+        question.answers.forEachIndexed { i, text ->
+            val bg = when {
+                selected == -1 -> CardGreen
+                i == question.correct -> CorrectGreen
+                i == selected -> WrongRed
                 else -> CardGreen
             }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .background(
-                        backgroundColor,
-                        RoundedCornerShape(14.dp)
-                    )
-                    .clickable(enabled = selectedAnswer == -1) {
-                        onAnswer(index)
-                    }
-                    .padding(17.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Card(
+                Modifier.fillMaxWidth().padding(vertical = 5.dp).clickable(enabled = selected == -1) { onAnswer(i) },
+                colors = CardDefaults.cardColors(containerColor = bg),
+                shape = RoundedCornerShape(13.dp)
             ) {
-                Text(
-                    "${index + 1}.",
-                    color = Gold,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(Modifier.width(12.dp))
-
-                Text(
-                    answer,
-                    color = White,
-                    fontSize = 17.sp,
-                    modifier = Modifier.weight(1f)
-                )
-
-                if (selectedAnswer != -1 && index == question.correct) {
-                    Text("✓", color = White, fontSize = 22.sp)
-                }
-
-                if (selectedAnswer == index && index != question.correct) {
-                    Text("✕", color = White, fontSize = 22.sp)
+                Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("${i + 1}.", color = Gold, fontWeight = FontWeight.Bold)
+                    Text(text, Modifier.padding(start = 12.dp), color = SoftWhite, fontSize = 15.sp)
                 }
             }
         }
-
-        if (selectedAnswer != -1) {
-            Spacer(Modifier.height(18.dp))
-
+        if (selected != -1) {
+            Spacer(Modifier.height(10.dp))
             Text(
-                question.explanation,
-                color = Gold,
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center
+                if (selected == question.correct) "✓ Ҷавоби дуруст!" else "✕ Ҷавоби нодуруст.",
+                color = if (selected == question.correct) Color(0xFF8BE0A5) else Color(0xFFFF9999),
+                fontWeight = FontWeight.Bold
             )
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        Button(
-            onClick = onNext,
-            enabled = selectedAnswer != -1,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Gold,
-                contentColor = DarkGreen,
-                disabledContainerColor = Color.Gray
-            ),
-            shape = RoundedCornerShape(15.dp)
-        ) {
-            Text(
-                if (questionNumber == totalQuestions) "НАТИҶА"
-                else "САВОЛИ НАВБАТӢ",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
+            if (question.explanation.isNotBlank()) {
+                Spacer(Modifier.height(5.dp))
+                Text(question.explanation, color = SoftWhite.copy(alpha = .8f), fontSize = 13.sp)
+            }
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = onNext, Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Gold)) {
+                Text(if (index == total - 1) "Натиҷа" else "Саволи навбатӣ", color = DarkGreen)
+            }
         }
     }
 }
 
 @Composable
-fun ResultScreen(
-    score: Int,
-    total: Int,
-    bestScore: Int,
-    onHome: () -> Unit,
-    onRetry: () -> Unit
-) {
-    val wrong = total - score
-
+private fun ResultScreen(score: Int, total: Int, onHome: () -> Unit, onRetry: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("🏆", fontSize = 65.sp)
-
+        Text("🏆", fontSize = 60.sp)
+        Spacer(Modifier.height(14.dp))
+        Text("Натиҷаи шумо", color = Gold, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+        Text("$score / $total", color = SoftWhite, fontSize = 42.sp, fontWeight = FontWeight.Bold)
         Text(
-            "Натиҷаи тест",
-            color = Gold,
-            fontSize = 29.sp,
-            fontWeight = FontWeight.Bold
+            if (total > 0 && score == total) "Офарин! Ҳама ҷавобҳо дурустанд."
+            else "Офарин! Омӯзишро идома диҳед.",
+            color = SoftWhite, textAlign = TextAlign.Center
         )
-
-        Spacer(Modifier.height(25.dp))
-
-        Text(
-            "$score / $total",
-            color = White,
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        Text(
-            "✓ Ҷавобҳои дуруст: $score",
-            color = Color(0xFF65D995),
-            fontSize = 19.sp
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            "✕ Ҷавобҳои нодуруст: $wrong",
-            color = Color(0xFFFF7777),
-            fontSize = 19.sp
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            "Рекорди беҳтарин: $bestScore",
-            color = Gold,
-            fontSize = 17.sp
-        )
-
-        Spacer(Modifier.height(30.dp))
-
-        Text(
-            when {
-                score == total -> "Мошоаллоҳ! Ҳама ҷавобҳо дурустанд!"
-                score >= (total + 1) / 2 -> "Офарин! Кӯшиши хуб!"
-                else -> "Боз машқ кун! Ту метавонӣ!"
-            },
-            color = Gold,
-            fontSize = 18.sp,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(35.dp))
-
-        Button(
-            onClick = onRetry,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Gold,
-                contentColor = DarkGreen
-            )
-        ) {
-            Text("АЗ НАВ ОҒОЗ КУН")
+        Spacer(Modifier.height(22.dp))
+        Button(onClick = onRetry, Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Gold)) {
+            Text("Аз нав оғоз кардан", color = DarkGreen)
         }
+        TextButton(onClick = onHome) { Text("Ба саҳифаи асосӣ", color = Gold) }
+    }
+}
 
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedButton(
-            onClick = onHome,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Gold
-            )
-        ) {
-            Text("САҲИФАИ АСОСӢ")
-        }
+@Composable
+private fun EmptyScreen(onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center) {
+        Text("Дар ин категория ҳоло савол нест.", color = SoftWhite, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(15.dp))
+        Button(onClick = onBack) { Text("Бозгашт") }
     }
 }
