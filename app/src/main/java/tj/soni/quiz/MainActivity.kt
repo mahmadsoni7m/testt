@@ -241,9 +241,6 @@ fun HomeScreen(
             }
         }
 
-        
-        
-
 @Composable
 fun QuizScreen(
     category: QuizCategory,
