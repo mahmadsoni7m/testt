@@ -1,5 +1,15 @@
+
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Иҷозатҳои огоҳинома -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Иҷозати ҳушдорҳои дақиқ -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Баъди аз нав фаъол шудани телефон -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -9,6 +19,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher">
 
+        <!-- Саҳифаи асосӣ -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -19,6 +30,27 @@
             </intent-filter>
 
         </activity>
+
+        <!-- Қабули ҷавоб аз дохили огоҳинома -->
+        <receiver
+            android:name=".daily.DailyQuizReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Барқарор кардани огоҳиномаҳо баъди Restart -->
+        <receiver
+            android:name=".daily.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+
+        </receiver>
 
     </application>
 
