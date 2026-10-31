@@ -302,25 +302,6 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.height(15.dp))
-
-        Text(
-            "✦       ☪       ✦",
-            color = Gold,
-            fontSize = 25.sp
-        )
-
-        Text(
-            "Дониш — нури зиндагист",
-            color = Gold,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        Spacer(Modifier.height(15.dp))
-    }
-}
-
 @Composable
 fun QuizScreen(
     category: QuizCategory,
