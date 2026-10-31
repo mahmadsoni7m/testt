@@ -1,4 +1,3 @@
-
 package tj.soni.quiz
 
 import android.content.Context
@@ -240,6 +239,8 @@ fun HomeScreen(
                 }
             }
         }
+     }
+}
 
 @Composable
 fun QuizScreen(
