@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
+import tj.soni.quiz.daily.DailyQuizNotifications
+import tj.soni.quiz.daily.DailyQuizScheduler
 
 private val DarkGreen = Color(0xFF102D24)
 private val CardGreen = Color(0xFF1C4938)
@@ -40,6 +42,21 @@ class MainActivity : ComponentActivity() {
         window.statusBarColor = android.graphics.Color.rgb(16, 45, 36)
         window.navigationBarColor = android.graphics.Color.rgb(16, 45, 36)
         window.decorView.systemUiVisibility = 0
+        DailyQuizNotifications.createChannel(this)
+        DailyQuizScheduler.scheduleAll(this)
+
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+    val permission = android.Manifest.permission.POST_NOTIFICATIONS
+
+    if (
+        androidx.core.content.ContextCompat.checkSelfPermission(
+            this,
+            permission
+        ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+    ) {
+        requestPermissions(arrayOf(permission), 1001)
+    }
+        }
 
         val prefs = getSharedPreferences(
             "islamic_quiz",
