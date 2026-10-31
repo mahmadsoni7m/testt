@@ -20,6 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 
 private val DarkGreen = Color(0xFF102D24)
 private val CardGreen = Color(0xFF1C4938)
@@ -145,6 +148,7 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
     }
 }
 
+
 @Composable
 fun HomeScreen(
     bestScore: Int,
@@ -154,52 +158,83 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF031D15),
+                        Color(0xFF07502F),
+                        Color(0xFF031D15)
+                    )
+                )
+            )
+            .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(24.dp))
-
-        Text("☪", color = Gold, fontSize = 54.sp)
-
-        Text(
-            "Саволҳои Исломӣ",
-            color = Gold,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
 
         Spacer(Modifier.height(12.dp))
+
+        // Логотипи барнома
+        Image(
+            painter = painterResource(
+                id = R.drawable.home_background
+            ),
+            contentDescription = "Логотипи Саволҳои Исломӣ",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(215.dp),
+            contentScale = ContentScale.Fit
+        )
+
+        Spacer(Modifier.height(5.dp))
 
         Text(
             "Ассалому алайкум!",
             color = White,
             fontSize = 23.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
+
+        Spacer(Modifier.height(5.dp))
 
         Text(
             "Дониши исломии худро бисанҷед",
-            color = White.copy(alpha = 0.8f),
-            fontSize = 14.sp
+            color = White.copy(alpha = 0.85f),
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center
         )
 
         Spacer(Modifier.height(25.dp))
 
-        Text(
-            "Категорияро интихоб кунед",
-            color = Gold,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text("◆", color = Gold, fontSize = 13.sp)
 
-        Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.width(10.dp))
 
+            Text(
+                "Категорияро интихоб кунед",
+                color = Gold,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.width(10.dp))
+
+            Text("◆", color = Gold, fontSize = 13.sp)
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Рӯйхати категорияҳо
         LazyColumn(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
             items(categories.size) { index ->
+
                 val item = categories[index]
                 val selected = selectedCategory == index
 
@@ -207,25 +242,44 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            if (selected) Gold else CardGreen,
-                            RoundedCornerShape(16.dp)
+                            if (selected) {
+                                Color(0xFFFFD76A)
+                            } else {
+                                Color(0xFF075334)
+                            },
+                            RoundedCornerShape(21.dp)
+                        )
+                        .border(
+                            BorderStroke(
+                                1.5.dp,
+                                Gold
+                            ),
+                            RoundedCornerShape(21.dp)
                         )
                         .clickable {
                             onCategorySelected(index)
                         }
-                        .padding(18.dp),
+                        .padding(
+                            horizontal = 17.dp,
+                            vertical = 19.dp
+                        ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+
                     Text(
                         item.emoji,
-                        fontSize = 25.sp
+                        fontSize = 30.sp
                     )
 
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(15.dp))
 
                     Text(
                         item.name,
-                        color = if (selected) DarkGreen else White,
+                        color = if (selected) {
+                            Color(0xFF082D1D)
+                        } else {
+                            White
+                        },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
@@ -233,13 +287,35 @@ fun HomeScreen(
 
                     Text(
                         if (selected) "✓" else "›",
-                        color = if (selected) DarkGreen else Gold,
-                        fontSize = 24.sp
+                        color = if (selected) {
+                            Color(0xFF082D1D)
+                        } else {
+                            Gold
+                        },
+                        fontSize = 27.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
-     }
+
+        Spacer(Modifier.height(15.dp))
+
+        Text(
+            "✦       ☪       ✦",
+            color = Gold,
+            fontSize = 25.sp
+        )
+
+        Text(
+            "Дониш — нури зиндагист",
+            color = Gold,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        Spacer(Modifier.height(15.dp))
+    }
 }
 
 @Composable
