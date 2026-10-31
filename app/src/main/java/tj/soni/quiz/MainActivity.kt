@@ -88,16 +88,16 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
         when (screen) {
 
             0 -> HomeScreen(
-                bestScore = bestScore,
-                onCategorySelected = { selectedCategory = it },
-                selectedCategory = selectedCategory,
-                onStart = {
-                    questionIndex = 0
-                    selectedAnswer = -1
-                    score = 0
-                    screen = 1
-                }
-            )
+    bestScore = bestScore,
+    onCategorySelected = { index ->
+        selectedCategory = index
+        questionIndex = 0
+        selectedAnswer = -1
+        score = 0
+        screen = 1
+    },
+    selectedCategory = selectedCategory
+)
 
             1 -> QuizScreen(
                 category = category,
@@ -150,8 +150,7 @@ fun IslamicQuizApp(prefs: android.content.SharedPreferences) {
 fun HomeScreen(
     bestScore: Int,
     selectedCategory: Int,
-    onCategorySelected: (Int) -> Unit,
-    onStart: () -> Unit
+    onCategorySelected: (Int) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -242,36 +241,8 @@ fun HomeScreen(
             }
         }
 
-        Button(
-            onClick = onStart,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(58.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Gold,
-                contentColor = DarkGreen
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                "ОҒОЗИ ТЕСТ",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(Modifier.height(18.dp))
-
-        Text(
-            "🏆 Рекорди беҳтарин: $bestScore",
-            color = Gold,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(Modifier.height(10.dp))
-    }
-}
+        
+        
 
 @Composable
 fun QuizScreen(
